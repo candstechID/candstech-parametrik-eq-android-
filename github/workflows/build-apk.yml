@@ -1,0 +1,51 @@
+
+name: Build CANDS TECH EQ APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '**.zip'
+      - '.github/workflows/build-apk.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Extract project ZIP
+        run: |
+          mkdir source
+          ZIP_FILE=$(find . -maxdepth 1 -name '*.zip' -print -quit)
+          test -n "$ZIP_FILE"
+          unzip -q "$ZIP_FILE" -d source
+          echo "ZIP_FILE=$ZIP_FILE"
+
+      - name: Build debug APK
+        run: |
+          GRADLEW=$(find source -type f -name gradlew -print -quit)
+          if [ -z "$GRADLEW" ]; then
+            echo "Gradle wrapper (gradlew) tidak ditemukan."
+            find source -maxdepth 3 -type f | head -100
+            exit 1
+          fi
+          PROJECT_DIR=$(dirname "$GRADLEW")
+          cd "$PROJECT_DIR"
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace
+
+      - name: Upload APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: CANDS-TECH-EQ-APK
+          path: source/**/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
