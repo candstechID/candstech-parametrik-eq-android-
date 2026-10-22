@@ -21,26 +21,24 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
       - name: Extract project ZIP
         run: |
           mkdir source
           ZIP_FILE=$(find . -maxdepth 1 -name '*.zip' -print -quit)
           test -n "$ZIP_FILE"
           unzip -q "$ZIP_FILE" -d source
-          echo "ZIP_FILE=$ZIP_FILE"
 
       - name: Build debug APK
         run: |
-          GRADLEW=$(find source -type f -name gradlew -print -quit)
-          if [ -z "$GRADLEW" ]; then
-            echo "Gradle wrapper (gradlew) tidak ditemukan."
-            find source -maxdepth 3 -type f | head -100
-            exit 1
-          fi
-          PROJECT_DIR=$(dirname "$GRADLEW")
+          GRADLE_FILE=$(find source -type f -name 'build.gradle.kts' -path '*/app/*' -print -quit)
+          test -n "$GRADLE_FILE"
+          APP_DIR=$(dirname "$GRADLE_FILE")
+          PROJECT_DIR=$(dirname "$APP_DIR")
           cd "$PROJECT_DIR"
-          chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          gradle assembleDebug --stacktrace
 
       - name: Upload APK
         if: success()
